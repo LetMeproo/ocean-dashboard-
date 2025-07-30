@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>لوحة تحكم مصروفات و ارباح متجر اوشن </title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+  <header>
+    <img src="شعار شفاف للارسال والمحادثات.png" alt="OCEAN Store Logo" class="logo" />
+    <h1>لوحة تحكم مصروفات و ارباح متجر اوشن  </h1>
+  </header>
+
+  <main>
+    <section class="form-section">
+      <h2>إضافة مصروف جديد</h2>
+      <form id="expense-form">
+        <input type="text" id="name" placeholder="اسم المصروف" required />
+        <select id="category">
+          <option>تشغيلي</option>
+          <option>خدمات</option>
+          <option>رواتب</option>
+          <option>اشتراكات</option>
+          <option>أخرى</option>
+        </select>
+        <input type="number" id="amount" placeholder="المبلغ" required />
+        <select id="currency">
+          <option>SAR</option>
+          <option>USD</option>
+          <option>EUR</option>
+          <option>EGP</option>
+          <option>AED</option>
+        </select>
+        <select id="frequency">
+          <option>مرة واحدة</option>
+          <option>يومي</option>
+          <option>شهري</option>
+          <option>سنوي</option>
+        </select>
+        <select id="notification">
+          <option>بدون</option>
+          <option>تنبيه واتساب فوري</option>
+          <option>تنبيه واتساب مجدول</option>
+        </select>
+        <input type="date" id="date" placeholder="تاريخ الدفع" />
+        <input type="date" id="schedule-date" style="display:none;" placeholder="تاريخ التذكير" />
+        <textarea id="notes" placeholder="ملاحظات (اختياري)"></textarea>
+        <button type="submit">إضافة</button>
+      </form>
+    </section>
+
+    <section class="sales-inputs">
+      <h2>البيانات المالية اليومية</h2>
+      <input type="number" id="daily-sales" placeholder="المبيعات اليومية" />
+      <input type="number" id="daily-profit" placeholder="الأرباح من المبيعات" />
+    </section>
+
+    <section class="table-section">
+      <h2>جدول المصروفات اليومية</h2>
+      <table id="expense-table">
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>الفئة</th>
+            <th>المبلغ اليومي</th>
+            <th>العملة</th>
+            <th>التاريخ</th>
+            <th>الملاحظات</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div id="summary">
+        <p><strong>إجمالي المصروفات اليومية:</strong> <span id="total-expenses">0</span></p>
+        <p><strong>صافي الربح اليومي:</strong> <span id="net-profit">0</span></p>
+      </div>
+    </section>
+
+    <section class="chart-section">
+      <h2>تحليل المصروفات</h2>
+      <canvas id="expenseChart"></canvas>
+      <button onclick="exportReport()">📤 تحميل التقرير كصورة</button>
+
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 OCEAN Store</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+body {
+  font-family: 'Cairo', sans-serif;
+  margin: 0;
+  background: #f4f7fa;
+  color: #333;
+  direction: rtl;
+}
+
+input, select, textarea, button {
+  font-family: 'Cairo', sans-serif;
+  font-size: 1rem;
+}
+
+header {
+  background: #0077b6;
+  color: white;
+  padding: 1em;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo {
+  height: 50px;
+}
+
+main {
+  background: white;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 1rem auto;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1em;
+  margin-bottom: 2em;
+}
+
+form input, form select, form textarea, form button {
+  padding: 0.5em;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+form button {
+  background: #00a8e8;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+form button:hover {
+  background: #0077b6;
+}
+
+.sales-inputs {
+  margin-bottom: 2em;
+}
+
+.sales-inputs input {
+  margin: 0.5em 0;
+  padding: 0.5em;
+  width: 100%;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+th, td {
+  padding: 0.8em;
+  border: 1px solid #ccc;
+  text-align: center;
+}
+
+#summary {
+  margin-top: 1em;
+  background: #e8f4ff;
+  padding: 1em;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.chart-section {
+  margin-top: 2em;
+  text-align: center;
+}
+
+#export-btn {
+  margin-top: 1em;
+  padding: 0.5em 1.5em;
+  background-color: #0077b6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+footer {
+  text-align: center;
+  padding: 1em;
+  background: #f0f0f0;
+  margin-top: 2em;
+}
