@@ -1,99 +1,1441 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>لوحة تحكم مصروفات و ارباح متجر اوشن </title>
-  <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OCEAN Admin — لوحة تحكم احترافية</title>
+
+  <!-- Fonts + Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Inter:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Charts/Export -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+  <style>
+    /* Design Tokens */
+    :root {
+      --radius: 14px;
+      --ring: 2px;
+      --shadow-1: 0 8px 24px rgba(16, 24, 40, .08);
+      --shadow-2: 0 10px 40px rgba(16, 24, 40, .14);
+
+      /* Layout vars */
+      --sidebar-w: 280px;
+
+      /* Light */
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e2e8f0;
+      --primary: #14b8a6;   /* teal */
+      --primary-600: #0ea5a3;
+      --accent: #6477ff;    /* indigo */
+      --accent-2: #22c55e;  /* green */
+      --warning: #ffb020;
+      --danger: #ef4444;
+
+      --grad-1: linear-gradient(135deg, #14b8a6 0%, #3bc7cb 50%, #6477ff 100%);
+      --glass: rgba(255, 255, 255, .65);
+      --glass-border: rgba(17, 24, 39, .08);
+    }
+    /* Dark (comfortable) */
+    html[data-theme="dark"] {
+      --bg: #0d1117;
+      --surface: #101826;
+      --card: #0f172a;
+      --text: #e6edf3;
+      --muted: #9fb0c0;
+      --border: #1f2a37;
+      --primary: #22d3ee;
+      --primary-600: #06b6d4;
+      --accent: #8b5cf6;
+      --accent-2: #22c55e;
+      --warning: #fec84b;
+      --danger: #f87171;
+
+      --grad-1: linear-gradient(135deg, #22d3ee 0%, #5eead4 50%, #8b5cf6 100%);
+      --glass: rgba(17, 24, 39, .55);
+      --glass-border: rgba(255,255,255,.08);
+    }
+
+    /* Base */
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Cairo', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(20,184,166,.12), transparent 60%),
+        radial-gradient(1000px 500px at 110% -20%, rgba(100,119,255,.12), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; height: auto; }
+
+    /* Layout grid */
+    .container-app {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      gap: 16px;
+      padding: 12px 16px 24px;
+      max-width: 1440px;
+      margin: 0 auto;
+      transition: grid-template-columns .2s ease;
+    }
+    .container-app.collapsed { --sidebar-w: 84px; }
+    @media (max-width: 992px) { .container-app { grid-template-columns: 1fr; } }
+
+    /* Topbar (glass) */
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; margin: 12px 16px 0;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(8px);
+      border-radius: 16px;
+      box-shadow: var(--shadow-1);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand img { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; box-shadow: 0 6px 16px rgba(20,184,166,.25); }
+    .brand .title { font-weight: 800; letter-spacing: .8px; background: var(--grad-1); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .search { display: flex; align-items: center; gap: 8px; padding: 6px 10px; min-width: 240px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 999px; }
+    .search input { border: none; outline: none; background: transparent; color: var(--text); width: 100%; }
+    .icon-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+      transition: transform .12s ease, box-shadow .12s ease, color .12s ease, border-color .12s ease; cursor: pointer;
+    }
+    .icon-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-1); color: var(--text); border-color: color-mix(in oklab, var(--border), var(--accent) 30%); }
+    .user { display:flex; align-items:center; gap: 8px; padding: 6px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+    .user .avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg,#06b6d4,#6477ff); }
+
+    /* Sidebar */
+    .sidebar {
+      position: sticky; top: 84px; height: calc(100vh - 100px);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow-1);
+      overflow: hidden; display: flex; flex-direction: column;
+      transition: width .2s ease;
+      width: var(--sidebar-w);
+    }
+    .sidebar .logo-row { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px dashed var(--border); background: radial-gradient(600px 200px at 80% -40%, rgba(20,184,166,.18), transparent 60%); }
+    .logo-mark { width: 44px; height: 44px; border-radius: 12px; background: var(--grad-1); display:inline-flex; align-items:center; justify-content:center; color: #fff; font-weight:800; box-shadow: var(--shadow-2); }
+    .sidebar .menu { padding: 10px; overflow-y: auto; }
+    .menu .item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; border-radius: 12px; color: var(--muted);
+      cursor: pointer; position: relative; transition: transform .12s ease, background .12s ease, color .12s ease, box-shadow .12s ease; font-weight: 600;
+    }
+    .menu .item:hover { background: rgba(100,119,255,.10); color: var(--text); transform: translateY(-1px); }
+    .menu .item.active { background: linear-gradient(90deg, rgba(20,184,166,.18), rgba(100,119,255,.18)); color: var(--text); box-shadow: inset 0 0 0 1px rgba(100,119,255,.22); }
+    .menu .item i { font-size: 1.2rem; color: var(--primary); }
+    .sidebar.collapsed .item span, .sidebar.collapsed .logo-text { display: none; }
+
+    /* Mobile sidebar overlay */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1040; display: none;
+    }
+    .overlay.show { display: block; }
+
+    /* Main panel */
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-1); padding: 16px; min-height: calc(100vh - 112px); overflow: hidden; }
+
+    /* Cards + interactions */
+    .kpi {
+      position: relative; padding: 18px 16px 20px; border-radius: 16px;
+      background: linear-gradient(var(--card), var(--card)) padding-box,
+                 linear-gradient(135deg, color-mix(in oklab, var(--primary) 40%, transparent), color-mix(in oklab, var(--accent) 35%, transparent)) border-box;
+      border: 1px solid transparent; box-shadow: 0 6px 18px rgba(2, 6, 23, .06);
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+    .kpi > .icon-btn { position: absolute; inset-inline-start: 12px; top: 12px; width: 34px; height: 34px; border-radius: 10px; border: none; color: var(--text); background: color-mix(in oklab, var(--surface) 60%, transparent); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    .kpi .text-muted { color: var(--muted) !important; }
+    .kpi .h3 { font-size: clamp(1.25rem, 1.1rem + .8vw, 1.75rem); margin: 2px 0 0; }
+    .kpi .spark { position: absolute; inset-inline-end: 8px; inset-block-end: 8px; width: 160px; height: 44px; opacity: .16; pointer-events: none; filter: saturate(1.1); }
+    .kpi:hover .spark { opacity: .25; }
+
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: .75rem 0 1rem; }
+    .section-head h3 { margin: 0; font-weight: 800; letter-spacing: .2px; }
+
+    /* Forms */
+    .form-control, .form-select { min-height: 46px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); }
+    .form-control:focus, .form-select:focus { border-color: color-mix(in oklab, var(--border), var(--accent) 40%); box-shadow: 0 0 0 var(--ring) color-mix(in oklab, var(--border), var(--accent) 40%); }
+
+    /* Tables */
+    .table-wrap { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: var(--card); }
+    table.data { width: 100%; border-collapse: collapse; }
+    .data th, .data td { padding: 12px 14px; border-bottom: 1px dashed var(--border); vertical-align: middle; }
+    .data thead th { background: radial-gradient(800px 400px at 20% -20%, rgba(20,184,166,.16), transparent 60%), var(--surface); text-align: start; font-weight: 800; }
+    .data tbody tr:hover { background: color-mix(in oklab, var(--accent) 10%, transparent); }
+    .actions .btn { margin-inline: 2px; }
+
+    /* Stacked tables on mobile */
+    @media (max-width: 640px) {
+      table.data.stackable thead { display: none; }
+      table.data.stackable, table.data.stackable tbody, table.data.stackable tr, table.data.stackable td { display: block; width: 100%; }
+      table.data.stackable tr { border-bottom: 1px solid var(--border); padding: 8px 10px; }
+      table.data.stackable td { border: none; padding: 6px 10px; display: grid; grid-template-columns: 120px 1fr; gap: 8px; }
+      table.data.stackable td::before { content: attr(data-label); color: var(--muted); font-weight: 700; }
+      .actions { display: flex; gap: 6px; }
+    }
+
+    /* Buttons */
+    .btn-gradient { background: var(--grad-1); color: #fff; border: none; border-radius: 12px; padding: 10px 16px; font-weight: 700; box-shadow: 0 10px 24px rgba(20,184,166,.24); transition: transform .12s ease, box-shadow .12s ease, filter .2s ease; }
+    .btn-gradient:hover { transform: translateY(-1px); filter: saturate(1.05); box-shadow: var(--shadow-2); }
+    .btn-soft { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; }
+
+    /* Charts */
+    .chart-card { border: 1px solid var(--border); background: var(--card); border-radius: 16px; padding: 14px; }
+    .chart-resp { position: relative; width: 100%; min-height: 280px; }
+    .chart-resp canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+    html[data-theme="dark"] canvas { filter: saturate(1.05) contrast(1.02); }
+
+    /* Offcanvas & Modal */
+    .offcanvas { background: var(--card); color: var(--text); border-inline-start: 1px solid var(--border); }
+    .modal-content { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+
+    /* Focus & Accessibility */
+    :focus-visible { outline: var(--ring) solid var(--accent); outline-offset: 2px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(#a5b4fc, #22d3ee); border-radius: 12px; }
+
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  </style>
 </head>
 <body>
-  <header>
-    <img src="شعار شفاف للارسال والمحادثات.png" alt="OCEAN Store Logo" class="logo" />
-    <h1>لوحة تحكم مصروفات و ارباح متجر اوشن  </h1>
+  <!-- Top Navigation -->
+  <header class="topbar" role="navigation" aria-label="الشريط العلوي">
+    <div class="brand">
+      <button class="icon-btn d-inline d-lg-none" id="toggleMobileSidebar" aria-label="فتح القائمة"><i class="bi bi-list"></i></button>
+      <img id="topbarLogo" src="شعار شفاف للارسال والمحادثات.png" alt="OCEAN Logo">
+      <div class="title">OCEAN Admin</div>
+    </div>
+    <div class="top-actions">
+      <div class="search d-none d-md-flex" role="search">
+        <i class="bi bi-search"></i>
+        <input type="search" id="globalSearch" placeholder="ابحث داخل النظام..." aria-label="بحث">
+      </div>
+      <button class="icon-btn" id="themeToggle" aria-label="تبديل الثيم" title="Light/Dark"><i class="bi bi-brightness-high"></i></button>
+      <button class="icon-btn" aria-label="الإشعارات"><i class="bi bi-bell"></i></button>
+      <div class="user" role="button" tabindex="0" aria-label="قائمة المستخدم">
+        <div class="avatar"></div>
+        <span class="d-none d-sm-inline">OCEAN</span>
+      </div>
+    </div>
   </header>
 
-  <main>
-    <section class="form-section">
-      <h2>إضافة مصروف جديد</h2>
-      <form id="expense-form">
-        <input type="text" id="name" placeholder="اسم المصروف" required />
-        <select id="category">
-          <option>تشغيلي</option>
-          <option>خدمات</option>
-          <option>رواتب</option>
-          <option>اشتراكات</option>
-          <option>أخرى</option>
-        </select>
-        <input type="number" id="amount" placeholder="المبلغ" required />
-        <select id="currency">
-          <option>SAR</option>
-          <option>USD</option>
-          <option>EUR</option>
-          <option>EGP</option>
-          <option>AED</option>
-        </select>
-        <select id="frequency">
-          <option>مرة واحدة</option>
-          <option>يومي</option>
-          <option>شهري</option>
-          <option>سنوي</option>
-        </select>
-        <select id="notification">
-          <option>بدون</option>
-          <option>تنبيه واتساب فوري</option>
-          <option>تنبيه واتساب مجدول</option>
-        </select>
-        <input type="date" id="date" placeholder="تاريخ الدفع" />
-        <input type="date" id="schedule-date" style="display:none;" placeholder="تاريخ التذكير" />
-        <textarea id="notes" placeholder="ملاحظات (اختياري)"></textarea>
-        <button type="submit">إضافة</button>
-      </form>
-    </section>
-
-    <section class="sales-inputs">
-      <h2>البيانات المالية اليومية</h2>
-      <input type="number" id="daily-sales" placeholder="المبيعات اليومية" />
-      <input type="number" id="daily-profit" placeholder="الأرباح من المبيعات" />
-    </section>
-
-    <section class="table-section">
-      <h2>جدول المصروفات اليومية</h2>
-      <table id="expense-table">
-        <thead>
-          <tr>
-            <th>الاسم</th>
-            <th>الفئة</th>
-            <th>المبلغ اليومي</th>
-            <th>العملة</th>
-            <th>التاريخ</th>
-            <th>الملاحظات</th>
-            <th>إجراءات</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <div id="summary">
-        <p><strong>إجمالي المصروفات اليومية:</strong> <span id="total-expenses">0</span></p>
-        <p><strong>صافي الربح اليومي:</strong> <span id="net-profit">0</span></p>
+  <div class="container-app" id="containerApp">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar" aria-label="القائمة الجانبية">
+      <div class="logo-row">
+        <div class="logo-mark"><i class="bi bi-activity"></i></div>
+        <div class="logo-text fw-bold">لوحة التحكم</div>
+        <div class="ms-auto">
+          <button class="icon-btn" id="toggleSidebar" title="طيّ القائمة" aria-label="طيّ/توسيع"><i class="bi bi-layout-sidebar-inset-reverse"></i></button>
+        </div>
       </div>
-    </section>
+      <nav class="menu" id="mainSidebar">
+        <div class="item active" data-section="overview"><i class="bi bi-speedometer2"></i><span>نظرة عامة</span></div>
+        <div class="item" data-section="purchases"><i class="bi bi-bag-check"></i><span>المشتريات</span></div>
+        <div class="item" data-section="report"><i class="bi bi-graph-up"></i><span>التقرير اليومي</span></div>
+        <div class="item" data-section="expenses"><i class="bi bi-cash-stack"></i><span>المصروفات</span></div>
+        <div class="item" data-section="appsettings"><i class="bi bi-gear"></i><span>الإعدادات</span></div>
+      </nav>
+      <div class="p-3">
+        <button class="btn-gradient w-100 mb-2" data-bs-toggle="offcanvas" data-bs-target="#p-offcanvasOrder"><i class="bi bi-plus-circle"></i> تسجيل طلب</button>
+        <button class="btn-soft w-100" data-bs-toggle="offcanvas" data-bs-target="#p-offcanvasSupplier"><i class="bi bi-person-plus"></i> إضافة مورد</button>
+      </div>
+    </aside>
+    <div class="overlay" id="overlay"></div>
 
-    <section class="chart-section">
-      <h2>تحليل المصروفات</h2>
-      <canvas id="expenseChart"></canvas>
-      <button onclick="exportReport()">📤 تحميل التقرير كصورة</button>
+    <!-- Main Panel -->
+    <main class="panel">
+      <!-- Overview -->
+      <section id="overviewSection">
+        <div class="section-head">
+          <h3>نظرة عامة</h3>
+          <span class="soft-badge">البيانات محفوظة محليًا</span>
+        </div>
 
-    </section>
-  </main>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="kpi">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="text-muted">مشتريات هذا الشهر (دولار)</div>
+                  <div class="h3 mb-0" id="ov-month-purchases">$0</div>
+                  <div class="mt-1 small text-muted" id="ov-month-purchases-qty">0 كوين</div>
+                </div>
+                <div class="icon-btn" aria-hidden="true"><i class="bi bi-bag"></i></div>
+              </div>
+              <!-- <canvas class="spark" id="spark1"></canvas> -->
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="kpi">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="text-muted">صافي أرباح الفترة المحفوظة</div>
+                  <div class="h3 mb-0" id="ov-period-profit">0 ريال</div>
+                  <div class="mt-1 small" id="ov-top-program"></div>
+                </div>
+                <div class="icon-btn" aria-hidden="true"><i class="bi bi-currency-exchange"></i></div>
+              </div>
+              <!-- <canvas class="spark" id="spark2"></canvas> -->
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="kpi">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="text-muted">صافي اليوم (تقريبي)</div>
+                  <div class="h3 mb-0" id="ov-today-net">0 ريال</div>
+                  <div class="mt-1 small" id="ov-today-comp"></div>
+                </div>
+                <div class="icon-btn" aria-hidden="true"><i class="bi bi-clipboard-data"></i></div>
+              </div>
+              <!-- <canvas class="spark" id="spark3"></canvas> -->
+            </div>
+          </div>
+        </div>
 
-  <footer>
-    <p>© 2025 OCEAN Store</p>
-  </footer>
+        <div class="row g-3 mt-1">
+          <div class="col-12">
+            <div class="chart-card">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0 fw-bold">أداء آخر 7 أيام</h5>
+                <div class="text-muted small">ملخّص الربحية اليومية</div>
+              </div>
+              <div class="chart-resp"><canvas id="ov-7days-chart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-  <script src="script.js"></script>
+      <!-- Purchases -->
+      <section id="purchasesSection" class="d-none">
+        <div class="section-head">
+          <h3>المشتريات</h3>
+          <div class="d-flex gap-2">
+            <input type="text" class="form-control" id="p-order-search" placeholder="بحث عن مورد/برنامج">
+            <button class="btn-gradient" data-bs-toggle="offcanvas" data-bs-target="#p-offcanvasOrder"><i class="bi bi-plus-circle"></i> تسجيل طلب</button>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-2" id="p-suppliers-cards"></div>
+
+        <div class="table-wrap">
+          <div class="d-flex justify-content-between align-items-center p-3">
+            <h6 class="mb-0 fw-bold">سجل الطلبات</h6>
+            <div class="d-flex align-items-center gap-2">
+              <span class="soft-badge" id="p-month-summary"></span>
+              <button class="btn-soft" onclick="p_downloadExcel()"><i class="bi bi-download"></i> Excel</button>
+            </div>
+          </div>
+          <table class="data stackable" id="p-orders-data">
+            <thead>
+              <tr><th>التاريخ</th><th>البرنامج</th><th>المورد</th><th>المبلغ ($)</th><th>الكمية</th><th>الإجراءات</th></tr>
+            </thead>
+            <tbody id="p-orders-table"></tbody>
+          </table>
+        </div>
+
+        <div class="table-wrap mt-3">
+          <div class="p-3"><h6 class="mb-0 fw-bold">الفواتير</h6></div>
+          <table class="data stackable" id="p-invoices-data">
+            <thead>
+              <tr><th>البرنامج</th><th>المورد</th><th>التاريخ</th><th>الفاتورة</th><th>الإجراءات</th></tr>
+            </thead>
+            <tbody id="p-invoices-table"></tbody>
+          </table>
+        </div>
+
+        <div class="mt-4">
+          <h5 class="fw-bold mb-2">إعدادات الموردين</h5>
+          <div class="row g-3" id="p-suppliers-list"></div>
+          <div class="mt-3">
+            <h6 class="fw-bold">الموردون المضافون</h6>
+            <ul class="list-group" id="p-dynamicSuppliers"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Daily Report -->
+      <section id="reportSection" class="d-none">
+        <div class="section-head">
+          <h3>التقرير اليومي</h3>
+          <div class="d-flex align-items-center gap-2">
+            <input type="date" id="r-date" class="form-control w-auto" />
+            <button class="btn-gradient" id="r-saveDayBtn"><i class="bi bi-save"></i> حفظ اليوم</button>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="kpi">
+              <div class="text-muted">إجمالي صافي الربح</div>
+              <div class="h3 mb-0"><span id="r-total-profit">0</span> ريال</div>
+            </div>
+          </div>
+          <div class="col-md-8">
+            <div class="kpi">
+              <div class="text-muted">مقارنة مع اليوم السابق</div>
+              <div id="r-compare" class="mt-2"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <h5 class="fw-bold">Daily Sales</h5>
+          <div class="table-wrap">
+            <table class="data stackable" id="r-sales-data">
+              <thead><tr><th>Program</th><th>Total Sales</th><th>Total Cost</th><th>Net Profit</th><th>Coin Rate</th></tr></thead>
+              <tbody id="r-sales-table">
+                <tr>
+                  <td>PARTY STAR</td>
+                  <td><input type="number" class="form-control r-sales" /></td>
+                  <td><input type="number" class="form-control r-cost" /></td>
+                  <td><input type="number" class="form-control r-profit" /></td>
+                  <td><input type="number" class="form-control r-coin" /></td>
+                </tr>
+                <tr>
+                  <td>SADA</td>
+                  <td><input type="number" class="form-control r-sales" /></td>
+                  <td><input type="number" class="form-control r-cost" /></td>
+                  <td><input type="number" class="form-control r-profit" /></td>
+                  <td><input type="number" class="form-control r-coin" /></td>
+                </tr>
+                <tr>
+                  <td>HAWA</td>
+                  <td><input type="number" class="form-control r-sales" /></td>
+                  <td><input type="number" class="form-control r-cost" /></td>
+                  <td><input type="number" class="form-control r-profit" /></td>
+                  <td><input type="number" class="form-control r-coin" /></td>
+                </tr>
+                <tr>
+                  <td>SELA</td>
+                  <td><input type="number" class="form-control r-sales" /></td>
+                  <td><input type="number" class="form-control r-cost" /></td>
+                  <td><input type="number" class="form-control r-profit" /></td>
+                  <td><input type="number" class="form-control r-coin" /></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="alert alert-success mt-2">
+            <strong>إجمالي صافي الربح:</strong> <span id="r-total-profit-inline">0</span> ريال
+            <span class="ms-2" id="r-top-program"></span>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <h5 class="fw-bold">Period Analysis</h5>
+          <div class="row g-2 mb-2">
+            <div class="col"><input type="date" class="form-control" id="r-period-date" /></div>
+            <div class="col"><input type="number" class="form-control" id="r-period-sales" placeholder="Net Sales" /></div>
+            <div class="col"><input type="text" class="form-control" id="r-period-top-program" placeholder="Top Program" /></div>
+            <div class="col-auto"><button class="btn-soft" onclick="r_addPeriodData()">Add Day</button></div>
+          </div>
+          <ul id="r-period-list" class="mb-2"></ul>
+          <button class="btn-gradient mb-2" onclick="r_generatePeriodAnalysis()">تحليل الفترة</button>
+          <div id="r-period-analysis" class="mt-2"></div>
+        </div>
+
+        <div class="mt-3">
+          <h5 class="fw-bold">ملاحظات</h5>
+          <textarea class="form-control" id="r-notes" rows="3"></textarea>
+        </div>
+
+        <div class="text-end mt-3">
+          <button class="btn-soft" onclick="r_previewReport()">معاينة</button>
+          <button class="btn-soft btn-danger" onclick="r_exportPDF()">PDF</button>
+          <button class="btn-soft btn-info" onclick="r_exportJPG()">JPG</button>
+        </div>
+        <div id="r-pdf-report" class="mt-3"></div>
+      </section>
+
+      <!-- Expenses -->
+      <section id="expensesSection" class="d-none">
+        <div class="section-head">
+          <h3>المصروفات</h3>
+          <button class="btn-soft" onclick="e_exportReport()"><i class="bi bi-image"></i> تحميل كصورة</button>
+        </div>
+
+        <div id="e-main">
+          <div class="chart-card mb-3">
+            <h6 class="fw-bold">إضافة مصروف جديد</h6>
+            <form id="e-form" class="row g-2">
+              <div class="col-md-3"><input type="text" id="e-name" class="form-control" placeholder="اسم المصروف" required /></div>
+              <div class="col-md-2">
+                <select id="e-category" class="form-select"><option>تشغيلي</option><option>خدمات</option><option>رواتب</option><option>اشتراكات</option><option>أخرى</option></select>
+              </div>
+              <div class="col-md-2"><input type="number" id="e-amount" class="form-control" placeholder="المبلغ (SAR/يومي)" required /></div>
+              <div class="col-md-2">
+                <select id="e-currency" class="form-select"><option>SAR</option><option>USD</option><option>EUR</option><option>EGP</option><option>AED</option></select>
+              </div>
+              <div class="col-md-2">
+                <select id="e-frequency" class="form-select"><option>مرة واحدة</option><option>يومي</option><option>شهري</option><option>سنوي</option></select>
+              </div>
+              <div class="col-md-3">
+                <select id="e-notification" class="form-select"><option>بدون</option><option>تنبيه واتساب فوري</option><option>تنبيه واتساب مجدول</option></select>
+              </div>
+              <div class="col-md-3"><input type="date" id="e-date" class="form-control" placeholder="تاريخ الدفع" /></div>
+              <div class="col-md-3"><input type="date" id="e-schedule-date" class="form-control d-none" placeholder="تاريخ التذكير" /></div>
+              <div class="col-md-6"><input type="text" id="e-notes" class="form-control" placeholder="ملاحظات (اختياري)" /></div>
+              <div class="col-12">
+                <button type="submit" class="btn-gradient"><i class="bi bi-plus"></i> إضافة</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-lg-8">
+              <div class="table-wrap">
+                <div class="p-3 d-flex justify-content-between align-items-center">
+                  <h6 class="mb-0 fw-bold">جدول المصروفات اليومية</h6>
+                  <span class="text-muted small">انقر تعديل لتحديث أي مصروف</span>
+                </div>
+                <table class="data stackable" id="e-table">
+                  <thead>
+                    <tr><th>الاسم</th><th>الفئة</th><th>المبلغ اليومي</th><th>العملة</th><th>الدورية</th><th>التاريخ</th><th>الملاحظات</th><th>إجراءات</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+                <div class="p-3 d-flex flex-wrap gap-3">
+                  <div class="soft-badge"><strong>إجمالي المصروفات اليومية:</strong> <span id="e-total-expenses">0</span></div>
+                  <div class="soft-badge"><strong>صافي الربح اليومي:</strong> <span id="e-net-profit">0</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="chart-card">
+                <h6 class="fw-bold">تحليل المصروفات</h6>
+                <input type="number" id="e-daily-sales" class="form-control my-2" placeholder="المبيعات اليومية" />
+                <input type="number" id="e-daily-profit" class="form-control mb-2" placeholder="الأرباح من المبيعات" />
+                <div class="chart-resp"><canvas id="e-chart"></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section id="appsettingsSection" class="d-none">
+        <div class="section-head"><h3>الإعدادات والنسخ الاحتياطي</h3></div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="chart-card h-100">
+              <h6 class="fw-bold">نسخ احتياطي لجميع البيانات</h6>
+              <p class="text-muted">يتضمن الموردين والطلبات والفواتير والمصروفات والتقارير اليومية</p>
+              <div class="d-flex gap-2">
+                <button class="btn-gradient" onclick="app_exportAll()"><i class="bi bi-cloud-download"></i> تصدير JSON</button>
+                <label class="btn-soft mb-0">
+                  <i class="bi bi-cloud-upload"></i> استيراد JSON
+                  <input type="file" accept="application/json" class="d-none" onchange="app_importAll(event)">
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="chart-card h-100">
+              <h6 class="fw-bold">إعادة التهيئة</h6>
+              <p class="text-muted">تحذير: سيؤدي لمسح كل البيانات المحلية</p>
+              <button class="btn-soft btn-danger" onclick="app_resetAll()"><i class="bi bi-trash"></i> مسح كل البيانات</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Offcanvas: New Order -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="p-offcanvasOrder">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title"><i class="bi bi-plus-circle"></i> تسجيل طلب جديد</h5>
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+      <form id="p-orderForm">
+        <div class="form-floating mb-3 position-relative">
+          <select class="form-select ps-5" id="p-supplierSelect" required>
+            <option value="" disabled selected>اختر المورد</option>
+          </select>
+          <label for="p-supplierSelect"><i class="bi bi-person"></i> المورد</label>
+        </div>
+        <div class="form-floating mb-1 position-relative">
+          <input type="number" class="form-control ps-5" id="p-amount" placeholder="المبلغ بالدولار" min="1" required>
+          <label for="p-amount"><i class="bi bi-currency-dollar"></i> المبلغ بالدولار</label>
+        </div>
+        <div class="small text-muted mb-3" id="p-qtyPreview"></div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">إرفاق فاتورة أو إيصال تحويل <span class="text-danger">*</span></label>
+          <input type="file" class="form-control" id="p-orderAttachment" accept="application/pdf,image/*" required>
+        </div>
+        <button type="submit" class="btn-gradient w-100"><i class="bi bi-plus-circle"></i> إضافة الطلب</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Offcanvas: Add Supplier -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="p-offcanvasSupplier">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title"><i class="bi bi-person-plus"></i> إضافة مورد جديد</h5>
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+      <form id="p-addSupplierForm-off" class="row g-3">
+        <div class="col-12"><input type="text" class="form-control" id="p-supplierNameOff" placeholder="اسم المورد" required></div>
+        <div class="col-12"><input type="text" class="form-control" id="p-programNameOff" placeholder="اسم البرنامج" required></div>
+        <div class="col-12"><input type="number" class="form-control" id="p-coinsPerDollarOff" placeholder="عدد الكوين مقابل الدولار" min="1" required></div>
+        <div class="col-12"><input type="url" class="form-control" id="p-contactLinkOff" placeholder="رابط التواصل (واتساب أو وي تشات)"></div>
+        <div class="col-12"><button type="submit" class="btn-gradient w-100"><i class="bi bi-person-plus"></i> إضافة المورد</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Invoice Preview -->
+  <div class="modal fade" id="p-invoiceModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-file-earmark-pdf"></i> معاينة الفاتورة</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0 text-center" style="background:var(--surface)">
+          <div id="p-invoicePreviewContainer" class="w-100 h-100 d-flex justify-content-center align-items-center" style="min-height:60vh;"></div>
+        </div>
+        <div class="modal-footer">
+          <a id="p-downloadInvoiceBtn" class="btn-soft" download target="_blank"><i class="bi bi-download"></i> تحميل الفاتورة</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="p-invoiceInput" class="d-none" accept="application/pdf,image/*">
+
+  <!-- Modal: Edit Supplier -->
+  <div class="modal fade" id="modalEditSupplier" tabindex="-1">
+    <div class="modal-dialog">
+      <form class="modal-content" id="formEditSupplier">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil-square"></i> تعديل المورد</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-2">
+          <input type="hidden" id="editSupplierIndex">
+          <div class="col-12"><input class="form-control" id="editSupplierName" placeholder="اسم المورد" required></div>
+          <div class="col-12"><input class="form-control" id="editProgramName" placeholder="اسم البرنامج" required></div>
+          <div class="col-12"><input type="number" class="form-control" id="editCoinsPerDollar" placeholder="الكوين مقابل الدولار" min="1" required></div>
+          <div class="col-12"><input type="url" class="form-control" id="editContactLink" placeholder="رابط التواصل (اختياري)"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-soft" type="button" data-bs-dismiss="modal">إلغاء</button>
+          <button class="btn-gradient" type="submit">حفظ التعديلات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Order -->
+  <div class="modal fade" id="modalEditOrder" tabindex="-1">
+    <div class="modal-dialog">
+      <form class="modal-content" id="formEditOrder">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil-square"></i> تعديل الطلب</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-2">
+          <input type="hidden" id="editOrderIndex">
+          <div class="col-12">
+            <label class="form-label">المورد/البرنامج</label>
+            <select class="form-select" id="editOrderSupplier"></select>
+          </div>
+          <div class="col-6">
+            <label class="form-label">التاريخ</label>
+            <input type="date" class="form-control" id="editOrderDate" required>
+          </div>
+          <div class="col-6">
+            <label class="form-label">المبلغ ($)</label>
+            <input type="number" class="form-control" id="editOrderAmount" min="1" required>
+          </div>
+          <div class="col-12">
+            <label class="form-label">استبدال الفاتورة (اختياري)</label>
+            <input type="file" class="form-control" id="editOrderInvoice" accept="application/pdf,image/*">
+          </div>
+          <div class="col-12 small text-muted" id="editOrderQtyPreview"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-soft" type="button" data-bs-dismiss="modal">إلغاء</button>
+          <button class="btn-gradient" type="submit">حفظ التعديلات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Expense -->
+  <div class="modal fade" id="modalEditExpense" tabindex="-1">
+    <div class="modal-dialog">
+      <form class="modal-content" id="formEditExpense">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil-square"></i> تعديل المصروف</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-2">
+          <input type="hidden" id="editExpenseId">
+          <div class="col-12"><input class="form-control" id="editExpenseName" placeholder="اسم المصروف" required></div>
+          <div class="col-6">
+            <select id="editExpenseCategory" class="form-select">
+              <option>تشغيلي</option><option>خدمات</option><option>رواتب</option><option>اشتراكات</option><option>أخرى</option>
+            </select>
+          </div>
+          <div class="col-6"><input type="number" class="form-control" id="editExpenseAmount" placeholder="المبلغ اليومي (SAR)" required></div>
+          <div class="col-6">
+            <select id="editExpenseFrequency" class="form-select">
+              <option>مرة واحدة</option><option>يومي</option><option>شهري</option><option>سنوي</option>
+            </select>
+          </div>
+          <div class="col-6"><input type="date" id="editExpenseDate" class="form-control"></div>
+          <div class="col-12"><input type="text" id="editExpenseNotes" class="form-control" placeholder="ملاحظات"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-soft" type="button" data-bs-dismiss="modal">إلغاء</button>
+          <button class="btn-gradient" type="submit">حفظ التعديلات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Period Entry -->
+  <div class="modal fade" id="modalEditPeriod" tabindex="-1">
+    <div class="modal-dialog">
+      <form class="modal-content" id="formEditPeriod">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil-square"></i> تعديل يوم في الفترة</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-2">
+          <input type="hidden" id="editPeriodIndex">
+          <div class="col-6"><input type="date" class="form-control" id="editPeriodDate" required></div>
+          <div class="col-6"><input type="number" class="form-control" id="editPeriodSales" placeholder="Net Sales" required></div>
+          <div class="col-12"><input type="text" class="form-control" id="editPeriodTopProgram" placeholder="Top Program" required></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-soft" type="button" data-bs-dismiss="modal">إلغاء</button>
+          <button class="btn-gradient" type="submit">حفظ التعديلات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080">
+    <div id="liveToast" class="toast align-items-center text-bg-primary border-0" role="status" aria-live="polite" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="toastBody">تم التنفيذ</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- App Scripts -->
+  <script>
+    // Branding
+    const LOGO_URL = 'شعار شفاف للارسال والمحادثات.png';
+    document.getElementById('topbarLogo').src = LOGO_URL;
+
+    // Theme handling + chart theme sync
+    const THEME_KEY = 'ocean_theme';
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const savedTheme = localStorage.getItem(THEME_KEY) || (prefersDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    const themeBtn = document.getElementById('themeToggle');
+    function updateThemeIcon(){
+      const cur = document.documentElement.getAttribute('data-theme');
+      themeBtn.innerHTML = cur === 'light' ? '<i class="bi bi-moon-stars"></i>' : '<i class="bi bi-brightness-high"></i>';
+    }
+    function setChartTheme(){
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      Chart.defaults.color = isDark ? '#c7d1db' : '#475569';
+      Chart.defaults.borderColor = isDark ? '#2a3a4d' : '#e2e8f0';
+      const alpha = isDark ? '22' : '28';
+      window._sparkColors = { green: '#14b8a6'+alpha, indigo: '#6477ff'+alpha, emerald: '#22c55e'+alpha };
+    }
+    setChartTheme(); updateThemeIcon();
+
+    themeBtn.addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme');
+      const next = cur === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem(THEME_KEY, next);
+      updateThemeIcon(); setChartTheme();
+      ov_refresh(); e_renderChart();
+    });
+
+    // Sidebar behavior and overlay (no overlap)
+    const sidebar = document.getElementById('sidebar');
+    const containerApp = document.getElementById('containerApp');
+    const overlay = document.getElementById('overlay');
+    document.getElementById('toggleSidebar').addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      containerApp.classList.toggle('collapsed'); // grid recalculates (no overlap)
+    });
+    document.getElementById('toggleMobileSidebar').addEventListener('click', () => {
+      // For mobile: show overlay and slide sidebar as fixed panel
+      if (getComputedStyle(containerApp).gridTemplateColumns === '1fr') {
+        sidebar.style.position = 'fixed';
+        sidebar.style.insetInlineStart = '0';
+        sidebar.style.top = '64px';
+        sidebar.style.height = 'calc(100vh - 64px)';
+        sidebar.style.zIndex = '1050';
+        sidebar.style.transform = 'translateX(0)';
+        overlay.classList.add('show');
+        overlay.addEventListener('click', closeMobileSidebar, { once: true });
+      }
+    });
+    function closeMobileSidebar(){
+      sidebar.removeAttribute('style');
+      overlay.classList.remove('show');
+    }
+
+    // Section switching
+    Array.from(document.querySelectorAll('#mainSidebar .item')).forEach(item => {
+      item.addEventListener('click', () => {
+        const sec = item.dataset.section;
+        document.querySelectorAll('#mainSidebar .item').forEach(i=> i.classList.remove('active'));
+        item.classList.add('active');
+        ['overview','purchases','report','expenses','appsettings'].forEach(id=>{
+          document.getElementById(id+'Section').classList.toggle('d-none', id !== sec);
+        });
+      });
+    });
+
+    // Toast helper
+    function toast(msg, type='primary'){
+      const el = document.getElementById('liveToast');
+      el.className = `toast align-items-center text-bg-${type} border-0`;
+      document.getElementById('toastBody').innerText = msg;
+      new bootstrap.Toast(el, { delay: 2400 }).show();
+    }
+
+    // Sparklines
+    const sparkCfg = (ctx, hex) => new Chart(ctx, {
+      type: 'line',
+      data: { labels: Array.from({length:12}, (_,i)=>i+1),
+        datasets: [{ data: Array.from({length:12}, ()=> Math.round(50+Math.random()*50)), borderColor: hex.replace(/..$/, ''), pointRadius: 0, fill: true, backgroundColor: hex }] },
+      options: { responsive:true, plugins:{ legend:{display:false}}, scales:{ x:{display:false}, y:{display:false} } }
+    });
+    let s1,s2,s3;
+
+    // Storage helpers
+    const LS_KEYS = {
+      suppliers: 'ocean_suppliers',
+      orders: 'ocean_orders',
+      expenses: 'ocean_expenses',
+      daily: 'ocean_daily_reports',
+      period: 'ocean_period_data'
+    };
+    const fmt = n => isNaN(n) ? '0' : Number(n).toLocaleString('ar-SA');
+    const todayISO = () => new Date().toISOString().split('T')[0];
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const load = (k,d)=>{ try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+    const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+
+    // ------------- Purchases Module -------------
+    const p_defaultSuppliers = [
+      { name: "Gumdrop", program: "PARTY STAR", rate: 950, contact: "https://wa.me/966554520700" },
+      { name: "voice party", program: "HAWA", rate: 1030, contact: "https://wa.me/966YYYYYYYYY" },
+      { name: "HONG KONG FIRE", program: "SELA", rate: 2000, contact: "https://wa.me/966ZZZZZZZZZ" },
+      { name: "HONG KONG SAID", program: "SADA", rate: 11250, contact: "https://wa.me/966AAAAAAAAA" }
+    ];
+    let p_suppliers = load(LS_KEYS.suppliers, null) || p_defaultSuppliers;
+    let p_orders = load(LS_KEYS.orders, []);
+    let p_currentUploadIndex = null;
+
+    function p_saveSuppliers(){ save(LS_KEYS.suppliers, p_suppliers); }
+    function p_saveOrders(){ save(LS_KEYS.orders, p_orders); ov_refresh(); }
+
+    function p_renderSuppliersCards(){
+      const c = $('#p-suppliers-cards'); c.innerHTML = '';
+      p_suppliers.forEach((sup,i)=>{
+        c.innerHTML += `
+          <div class="col-12 col-sm-6 col-lg-3">
+            <div class="kpi">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">${sup.name}</h6>
+                  <div class="small text-muted">${sup.program}</div>
+                  <div class="small mt-1">سعر الكوين: <strong>${fmt(sup.rate)}</strong></div>
+                </div>
+                <div class="d-flex gap-1">
+                  ${sup.contact ? `<a href="${sup.contact}" target="_blank" class="icon-btn" title="تواصل"><i class="bi bi-whatsapp"></i></a>` : ''}
+                  <button class="icon-btn" title="تعديل" onclick="openEditSupplier(${i})"><i class="bi bi-pencil"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      });
+    }
+    function p_renderSupplierSelect(){
+      const sel = $('#p-supplierSelect'), sel2 = $('#editOrderSupplier');
+      [sel, sel2].forEach(s=>{
+        s.innerHTML = `<option value="" disabled selected>اختر المورد</option>`;
+        p_suppliers.forEach((sup,i)=> s.innerHTML += `<option value="${i}">${sup.name} (${sup.program})</option>`);
+      });
+    }
+    function p_renderSuppliersList(){
+      const c = $('#p-suppliers-list'); c.innerHTML = '';
+      p_suppliers.forEach((sup,i)=>{
+        c.innerHTML += `
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="kpi">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-bold">${sup.name}</div>
+                  <div class="small text-muted">${sup.program}</div>
+                </div>
+                <div class="btn-group">
+                  <button class="btn btn-sm btn-outline-secondary" onclick="openEditSupplier(${i})"><i class="bi bi-pencil"></i></button>
+                  <button class="btn btn-sm btn-outline-danger" onclick="p_removeSupplier(${i})"><i class="bi bi-trash"></i></button>
+                </div>
+              </div>
+              <div class="small mt-2">سعر الكوين: <span class="fw-bold">${fmt(sup.rate)}</span></div>
+            </div>
+          </div>`;
+      });
+    }
+    function p_renderDynamicSuppliers(){
+      const ul = $('#p-dynamicSuppliers'); ul.innerHTML = '';
+      p_suppliers.forEach((sup,i)=>{
+        ul.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
+          <span>${sup.name} <span class="text-muted small">(${sup.program})</span></span>
+          <div class="btn-group">
+            <button class="btn btn-sm btn-outline-secondary" onclick="openEditSupplier(${i})"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="p_removeSupplier(${i})"><i class="bi bi-trash"></i></button>
+          </div>
+        </li>`;
+      });
+    }
+    function p_removeSupplier(i){
+      if(!confirm('هل تريد حذف هذا المورد؟')) return;
+      p_suppliers.splice(i,1);
+      p_saveSuppliers();
+      p_renderSuppliersCards(); p_renderSuppliersList(); p_renderDynamicSuppliers(); p_renderSupplierSelect();
+      toast('تم حذف المورد','primary');
+    }
+
+    function p_renderOrdersTable(){
+      const q = $('#p-order-search').value?.toLowerCase() || '';
+      const t = $('#p-orders-table'); t.innerHTML = '';
+      p_orders.forEach((o, idx)=>{
+        const txt = `${o.program} ${o.supplier}`.toLowerCase();
+        if (q && !txt.includes(q)) return;
+        t.innerHTML += `
+          <tr>
+            <td data-label="التاريخ">${o.date}</td>
+            <td data-label="البرنامج">${o.program}</td>
+            <td data-label="المورد">${o.supplier}</td>
+            <td data-label="المبلغ ($)">${o.amount}</td>
+            <td data-label="الكمية">${fmt(o.quantity)}</td>
+            <td data-label="الإجراءات" class="actions">
+              <button class="btn btn-sm btn-outline-secondary" onclick="openEditOrder(${idx})" title="تعديل"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-outline-danger" onclick="p_deleteOrder(${idx})" title="حذف"><i class="bi bi-trash"></i></button>
+              <button class="btn btn-sm btn-outline-primary" onclick="p_uploadInvoice(${idx})" title="رفع فاتورة"><i class="bi bi-upload"></i></button>
+              ${o.invoice ? `<button class="btn btn-sm btn-outline-success" onclick="p_showInvoice(${idx})" title="عرض"><i class="bi bi-file-earmark-pdf"></i></button>`:''}
+            </td>
+          </tr>`;
+      });
+      p_renderInvoicesTable();
+      const month = new Date().toISOString().slice(0,7);
+      const monthly = p_orders.filter(o=>o.date?.startsWith(month));
+      const mAmount = monthly.reduce((s,o)=> s+Number(o.amount||0), 0);
+      const mQty = monthly.reduce((s,o)=> s+Number(o.quantity||0), 0);
+      $('#p-month-summary').innerText = `الشهر: $${fmt(mAmount)} | ${fmt(mQty)} كوين`;
+    }
+    function p_renderInvoicesTable(){
+      const t = $('#p-invoices-table'); t.innerHTML = '';
+      p_orders.forEach((o,idx)=>{
+        if (!o.invoice) return;
+        t.innerHTML += `
+          <tr>
+            <td data-label="البرنامج">${o.program}</td>
+            <td data-label="المورد">${o.supplier}</td>
+            <td data-label="التاريخ">${o.date}</td>
+            <td data-label="الفاتورة">${o.invoice.url?.match(/^data:image/) ? `<img src="${o.invoice.url}" alt="فاتورة" style="width:56px;height:56px;border-radius:10px;border:1px solid var(--border);object-fit:cover;">` : `<i class="bi bi-file-earmark-pdf fs-3 text-danger"></i>`}</td>
+            <td data-label="الإجراءات">
+              <div class="btn-group">
+                <button class="btn btn-sm btn-outline-success" onclick="p_showInvoice(${idx})"><i class="bi bi-eye"></i></button>
+                <a class="btn btn-sm btn-outline-primary" href="${o.invoice.url}" download="${o.invoice.name}" target="_blank"><i class="bi bi-download"></i></a>
+              </div>
+            </td>
+          </tr>`;
+      });
+    }
+
+    // New Order form
+    document.getElementById('p-amount').addEventListener('input', function(){
+      const idx = $('#p-supplierSelect').value;
+      const sup = p_suppliers[idx];
+      const amount = parseFloat(this.value)||0;
+      const qty = sup ? amount*sup.rate : 0;
+      $('#p-qtyPreview').innerHTML = sup ? `سيتم إضافة <strong>${fmt(qty)}</strong> كوين لبرنامج ${sup.program}` : '';
+    });
+    $('#p-order-search').addEventListener('input', p_renderOrdersTable);
+
+    document.getElementById('p-orderForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      const supplierIdx = $('#p-supplierSelect').value;
+      const amount = parseFloat($('#p-amount').value);
+      const file = $('#p-orderAttachment').files[0];
+      if (supplierIdx === '' || !amount || amount<=0 || !file) return toast('يرجى تعبئة الحقول وإرفاق فاتورة','danger');
+
+      const sup = p_suppliers[supplierIdx];
+      const today = todayISO();
+      const dup = p_orders.find(o=> o.date===today && o.supplier===sup.name && Number(o.amount)===amount);
+      if (dup && !confirm('يوجد طلب مشابه لنفس المورد والمبلغ اليوم. المتابعة؟')) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev)=>{
+        const invoice = { name:file.name, url: ev.target.result };
+        const quantity = amount * sup.rate;
+        p_orders.push({ date: today, program: sup.program, supplier: sup.name, amount, quantity, invoice });
+        p_saveOrders(); p_renderOrdersTable(); e.target.reset(); $('#p-qtyPreview').innerHTML='';
+        bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('p-offcanvasOrder')).hide();
+        toast('تم إضافة الطلب','primary');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function p_deleteOrder(i){
+      if (!confirm('هل أنت متأكد من حذف هذا الطلب؟')) return;
+      p_orders.splice(i,1); p_saveOrders(); p_renderOrdersTable(); toast('تم الحذف','primary');
+    }
+    function p_uploadInvoice(i){
+      p_currentUploadIndex = i; const input = $('#p-invoiceInput'); input.value=''; input.click();
+    }
+    $('#p-invoiceInput').addEventListener('change', function(){
+      const file = this.files[0]; if (!file || p_currentUploadIndex===null) return;
+      const reader = new FileReader();
+      reader.onload = (e)=>{ p_orders[p_currentUploadIndex].invoice = { name:file.name, url:e.target.result }; p_saveOrders(); p_renderOrdersTable(); toast('تم رفع الفاتورة','primary'); };
+      reader.readAsDataURL(file); p_currentUploadIndex = null;
+    });
+    function p_showInvoice(i){
+      const inv = p_orders[i].invoice; if (!inv) return;
+      const c = $('#p-invoicePreviewContainer'); c.innerHTML = '';
+      if (inv.url.match(/^data:image/)) c.innerHTML = `<img src="${inv.url}" class="img-fluid rounded" style="max-height:70vh;">`;
+      else if (inv.url.match(/^data:application\/pdf/)) c.innerHTML = `<iframe src="${inv.url}" style="width:100%;height:70vh;border:none;"></iframe>`;
+      else c.innerHTML = `<div class="text-danger">نوع الملف غير مدعوم للمعاينة</div>`;
+      const dl = $('#p-downloadInvoiceBtn'); dl.href = inv.url; dl.download = inv.name;
+      new bootstrap.Modal(document.getElementById('p-invoiceModal')).show();
+    }
+
+    // Edit Supplier
+    window.openEditSupplier = function(i){
+      const s = p_suppliers[i];
+      $('#editSupplierIndex').value = i;
+      $('#editSupplierName').value = s.name;
+      $('#editProgramName').value = s.program;
+      $('#editCoinsPerDollar').value = s.rate;
+      $('#editContactLink').value = s.contact || '';
+      new bootstrap.Modal('#modalEditSupplier').show();
+    }
+    document.getElementById('formEditSupplier').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const i = +$('#editSupplierIndex').value;
+      p_suppliers[i] = {
+        name: $('#editSupplierName').value.trim(),
+        program: $('#editProgramName').value.trim(),
+        rate: parseInt($('#editCoinsPerDollar').value),
+        contact: $('#editContactLink').value.trim()
+      };
+      p_saveSuppliers();
+      p_renderSuppliersCards(); p_renderSuppliersList(); p_renderDynamicSuppliers(); p_renderSupplierSelect(); p_renderOrdersTable();
+      bootstrap.Modal.getInstance(document.getElementById('modalEditSupplier')).hide();
+      toast('تم تعديل المورد','primary');
+    });
+
+    // Edit Order (modal)
+    window.openEditOrder = function(i){
+      const o = p_orders[i];
+      $('#editOrderIndex').value = i;
+      p_renderSupplierSelect(); // ensure options
+      const sel = $('#editOrderSupplier');
+      // Try to match supplier by name+program
+      let idx = p_suppliers.findIndex(s=> s.name===o.supplier && s.program===o.program);
+      if (idx < 0) idx = '';
+      sel.value = idx;
+      $('#editOrderDate').value = o.date;
+      $('#editOrderAmount').value = o.amount;
+      const sup = p_suppliers[idx];
+      $('#editOrderQtyPreview').innerHTML = sup ? `سيتم احتساب الكمية بناءً على ${sup.rate} كوين/دولار` : '';
+      sel.onchange = ()=> {
+        const s = p_suppliers[sel.value];
+        $('#editOrderQtyPreview').innerHTML = s ? `سيتم احتساب الكمية بناءً على ${s.rate} كوين/دولار` : '';
+      };
+      new bootstrap.Modal('#modalEditOrder').show();
+    }
+    document.getElementById('formEditOrder').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const i = +$('#editOrderIndex').value;
+      const sel = $('#editOrderSupplier').value;
+      const amount = parseFloat($('#editOrderAmount').value);
+      const date = $('#editOrderDate').value;
+      if (!amount || !date) return;
+      const current = p_orders[i];
+      let supData = null;
+      if (sel !== '') { supData = p_suppliers[sel]; }
+      const newProgram = supData ? supData.program : current.program;
+      const newSupplier = supData ? supData.name : current.supplier;
+      const rate = supData ? supData.rate : (p_suppliers.find(s=> s.program===current.program)?.rate || 1);
+      const qty = amount * rate;
+
+      const file = $('#editOrderInvoice').files[0];
+      const applyUpdate = (invoiceObj)=>{
+        p_orders[i] = { ...current, date, amount, program: newProgram, supplier: newSupplier, quantity: qty, invoice: invoiceObj ?? current.invoice };
+        p_saveOrders(); p_renderOrdersTable();
+        bootstrap.Modal.getInstance(document.getElementById('modalEditOrder')).hide();
+        toast('تم تعديل الطلب','primary');
+        $('#editOrderInvoice').value = '';
+      };
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev)=> applyUpdate({ name:file.name, url: ev.target.result });
+        reader.readAsDataURL(file);
+      } else {
+        applyUpdate();
+      }
+    });
+
+    // ------------- Daily Report -------------
+    let r_periodData = load(LS_KEYS.period, []);
+    function r_updateTotalProfit(){
+      let total = 0, max = -Infinity, top = '';
+      $$('#r-sales-table tr').forEach(row=>{
+        const profit = parseFloat(row.querySelector('.r-profit')?.value) || 0;
+        const name = row.children[0]?.innerText || '';
+        total += profit; if (profit>max) { max=profit; top=name; }
+      });
+      $('#r-total-profit').innerText = total.toFixed(2);
+      $('#r-total-profit-inline').innerText = total.toFixed(2);
+      $('#r-top-program').innerHTML = top ? `<span class="badge bg-success">الأكثر ربحًا: ${top}</span>` : '';
+      return { total, top };
+    }
+    $$('.r-profit').forEach(inp=> inp.addEventListener('input', r_updateTotalProfit));
+
+    document.getElementById('r-saveDayBtn').addEventListener('click', r_saveDay);
+    function r_gatherSalesRows(){
+      return $$('#r-sales-table tr').map(tr=>{
+        const tds = tr.querySelectorAll('td');
+        return {
+          program: tds[0]?.innerText || '',
+          sales: parseFloat(tds[1]?.querySelector('input')?.value) || 0,
+          cost: parseFloat(tds[2]?.querySelector('input')?.value) || 0,
+          profit: parseFloat(tds[3]?.querySelector('input')?.value) || 0,
+          coin: parseFloat(tds[4]?.querySelector('input')?.value) || 0
+        };
+      });
+    }
+    function r_saveDay(){
+      const date = $('#r-date').value || todayISO();
+      const { total, top } = r_updateTotalProfit();
+      const daily = load(LS_KEYS.daily, []);
+      const idx = daily.findIndex(r=> r.date===date);
+      const payload = { date, salesRows: r_gatherSalesRows(), totalProfit: total, topProgram: top, deficit: { enabled:false }, notes: $('#r-notes').value || '' };
+      if (idx>=0) daily[idx] = payload; else daily.push(payload);
+      save(LS_KEYS.daily, daily); toast('تم حفظ اليوم ومقارنته باليوم السابق','primary');
+      r_compareWithPrevious(date); ov_refresh();
+    }
+    $('#r-date').addEventListener('change', r_loadDayIfAny);
+    function r_loadDayIfAny(){
+      const date = $('#r-date').value;
+      const daily = load(LS_KEYS.daily, []);
+      const d = daily.find(x=> x.date===date);
+      $$('#r-sales-table tr').forEach(tr=> tr.querySelectorAll('input').forEach(inp=> inp.value=''));
+      $('#r-notes').value = '';
+      if (d){
+        d.salesRows?.forEach((row,idx)=>{
+          const tr = $$('#r-sales-table tr')[idx]; if (!tr) return;
+          tr.querySelectorAll('input')[0].value = row.sales;
+          tr.querySelectorAll('input')[1].value = row.cost;
+          tr.querySelectorAll('input')[2].value = row.profit;
+          tr.querySelectorAll('input')[3].value = row.coin;
+        });
+        $('#r-notes').value = d.notes || '';
+      }
+      r_updateTotalProfit(); r_compareWithPrevious(date);
+    }
+    function r_compareWithPrevious(date){
+      const daily = load(LS_KEYS.daily, []).sort((a,b)=> a.date<b.date?-1:1);
+      const i = daily.findIndex(d=> d.date===date);
+      const cur = daily[i];
+      const prev = i>0 ? daily[i-1] : null;
+      const box = $('#r-compare');
+      if (!prev){ box.innerHTML = '<span class="text-muted">لا يوجد يوم سابق للمقارنة.</span>'; return; }
+      const diff = cur.totalProfit - prev.totalProfit;
+      const pct = prev.totalProfit ? (diff/prev.totalProfit*100) : 100;
+      const cls = diff>=0 ? 'bg-success' : 'bg-danger';
+      box.innerHTML = `<span class="badge ${cls}">${diff>=0?'⬆️':'⬇️'} ${fmt(diff)} (${pct.toFixed(1)}%) مقارنة باليوم السابق</span>`;
+    }
+
+    // Period data (Add/Edit/Delete)
+    function r_addPeriodData(){
+      const date = $('#r-period-date').value;
+      const sales = parseFloat($('#r-period-sales').value);
+      const topProgram = $('#r-period-top-program').value;
+      if (!date || isNaN(sales) || !topProgram) return alert('أدخل كل البيانات');
+      r_periodData.push({ date, sales, topProgram }); save(LS_KEYS.period, r_periodData);
+      r_renderPeriodList(); $('#r-period-date').value = ''; $('#r-period-sales').value = ''; $('#r-period-top-program').value = '';
+    }
+    function r_renderPeriodList(){
+      const ul = $('#r-period-list');
+      ul.innerHTML = r_periodData.map((e, i)=> `<li class="d-flex justify-content-between align-items-center">
+        <span>${e.date}: ${e.sales} ريال - الأعلى: ${e.topProgram}</span>
+        <span class="btn-group">
+          <button class="btn btn-sm btn-outline-secondary" onclick="openEditPeriod(${i})"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-outline-danger" onclick="r_deletePeriod(${i})"><i class="bi bi-trash"></i></button>
+        </span>
+      </li>`).join('');
+    }
+    window.openEditPeriod = function(i){
+      const d = r_periodData[i];
+      $('#editPeriodIndex').value = i;
+      $('#editPeriodDate').value = d.date;
+      $('#editPeriodSales').value = d.sales;
+      $('#editPeriodTopProgram').value = d.topProgram;
+      new bootstrap.Modal('#modalEditPeriod').show();
+    }
+    document.getElementById('formEditPeriod').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const i = +$('#editPeriodIndex').value;
+      r_periodData[i] = { date: $('#editPeriodDate').value, sales: parseFloat($('#editPeriodSales').value)||0, topProgram: $('#editPeriodTopProgram').value };
+      save(LS_KEYS.period, r_periodData);
+      r_renderPeriodList();
+      bootstrap.Modal.getInstance(document.getElementById('modalEditPeriod')).hide();
+      toast('تم تعديل يوم الفترة','primary');
+    });
+    window.r_deletePeriod = function(i){
+      if (!confirm('حذف هذا اليوم من الفترة؟')) return;
+      r_periodData.splice(i,1); save(LS_KEYS.period, r_periodData); r_renderPeriodList();
+    }
+    function r_generatePeriodAnalysis(){
+      if (r_periodData.length===0) return;
+      let total=0, bestDay='', best=-Infinity, map={};
+      r_periodData.forEach(e=>{ total+=e.sales; if(e.sales>best){best=e.sales; bestDay=e.date;} map[e.topProgram]=(map[e.topProgram]||0)+1; });
+      const top = Object.keys(map).reduce((a,b)=> map[a]>map[b]?a:b, Object.keys(map)[0]||'');
+      $('#r-period-analysis').innerHTML = `<div class="alert alert-success"><strong>إجمالي أرباح الفترة:</strong> ${total.toFixed(2)} ريال<br><strong>أفضل يوم:</strong> ${bestDay} (${best} ريال)<br><strong>الأكثر تكرارًا:</strong> ${top}</div>`;
+    }
+
+    // Report preview/export (unchanged core)
+    function r_gatherSalesRows(){ return $$('#r-sales-table tr').map(tr=>{ const t=tr.querySelectorAll('td'); return { program:t[0]?.innerText||'', sales:parseFloat(t[1]?.querySelector('input')?.value)||0, cost:parseFloat(t[2]?.querySelector('input')?.value)||0, profit:parseFloat(t[3]?.querySelector('input')?.value)||0, coin:parseFloat(t[4]?.querySelector('input')?.value)||0 }; }); }
+    function r_buildSalesTableHTML(){ const rows=r_gatherSalesRows(); return `<table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><thead><tr style="background:#e3f2fd;"><th style="border:1px solid #1976d2;padding:6px;">Program</th><th style="border:1px solid #1976d2;padding:6px;">Total Sales</th><th style="border:1px solid #1976d2;padding:6px;">Total Cost</th><th style="border:1px solid #1976d2;padding:6px;">Net Profit</th><th style="border:1px solid #1976d2;padding:6px;">Coin Rate</th></tr></thead><tbody>${rows.map(r=> `<tr><td style="border:1px solid #1976d2;padding:6px;">${r.program}</td><td style="border:1px solid #1976d2;padding:6px;">${r.sales}</td><td style="border:1px solid #1976d2;padding:6px;">${r.cost}</td><td style="border:1px solid #1976d2;padding:6px;">${r.profit}</td><td style="border:1px solid #1976d2;padding:6px;">${r.coin}</td></tr>`).join('')}</tbody></table>`; }
+    function r_previewReport(){ const periodHTML=$('#r-period-analysis').innerHTML||''; const notes=$('#r-notes').value||''; const topProgram=$('#r-top-program').innerHTML||''; const date=$('#r-date').value||new Date().toLocaleDateString(); $('#r-pdf-report').innerHTML=`<div><div class="d-flex align-items-center mb-2"><img src="${LOGO_URL}" alt="Logo" style="width:56px;height:56px;border-radius:12px;margin-left:12px;"><div><h1 class="mb-0">Ocean Store - Daily Report</h1><div class="text-muted" style="font-size:1.05rem;">Date: ${date}</div></div></div><h3 class="fw-bold">Daily Sales</h3>${r_buildSalesTableHTML()}<div class="alert alert-success"><strong>إجمالي صافي الربح:</strong> ${$('#r-total-profit').innerText} ريال ${topProgram}</div><h3 class="fw-bold">Period Analysis</h3>${periodHTML}<h3 class="fw-bold">ملاحظات</h3><div style="background:#f8fafc;padding:12px;border-radius:10px;min-height:40px;">${notes}</div></div>`; }
+    function r_exportPDF(){ r_previewReport(); setTimeout(()=>{ const el=document.querySelector('#r-pdf-report > div'); if(!el) return; html2pdf().set({ margin:0, filename:`Ocean_Report_${$('#r-date').value||todayISO()}.pdf`, image:{ type:'jpeg', quality:1 }, html2canvas:{ scale:2, useCORS:true, backgroundColor:'#fff' }, jsPDF:{ unit:'px', format:[794,1123], orientation:'portrait' } }).from(el).save(); }, 150); }
+    function r_exportJPG(){ r_previewReport(); setTimeout(()=>{ const el=document.querySelector('#r-pdf-report > div'); if(!el) return; html2canvas(el,{ backgroundColor:'#fff', scale:2 }).then(c=>{ const a=document.createElement('a'); a.download=`Ocean_Report_${$('#r-date').value||todayISO()}.jpg`; a.href=c.toDataURL('image/jpeg',1); a.click(); }); }, 150); }
+
+    // ------------- Expenses -------------
+    let e_expenses = load(LS_KEYS.expenses, []);
+    let e_rates = {};
+    async function e_loadRates(){ try { const res = await fetch('https://open.er-api.com/v6/latest/SAR'); const json=await res.json(); if (json.result==='success') e_rates=json.rates; } catch{} }
+    function e_convertToDaily(amount, frequency){
+      switch(frequency){ case 'شهري': return amount/30; case 'سنوي': return amount/365; case 'مرة واحدة': return amount; case 'يومي': default: return amount; }
+    }
+    $('#e-notification').addEventListener('change', (e)=> $('#e-schedule-date').classList.toggle('d-none', !e.target.value.includes('مجدول')));
+    document.getElementById('e-form').addEventListener('submit', async function(ev){
+      ev.preventDefault();
+      let name = $('#e-name').value;
+      let category = $('#e-category').value;
+      let amount = parseFloat($('#e-amount').value);
+      let currency = $('#e-currency').value;
+      let frequency = $('#e-frequency').value;
+      let notification = $('#e-notification').value;
+      let date = $('#e-date').value;
+      let scheduleDate = $('#e-schedule-date').value;
+      let notes = $('#e-notes').value;
+
+      if (currency!=='SAR' && e_rates[currency]) { amount = amount / e_rates[currency]; currency = 'SAR'; }
+      const dailyAmount = e_convertToDaily(amount, frequency);
+      const entry = { id: Date.now(), name, category, amount: dailyAmount, currency, frequency, date, notes, notification, scheduleDate };
+      e_expenses.push(entry); save(LS_KEYS.expenses, e_expenses);
+      ev.target.reset(); $('#e-schedule-date').classList.add('d-none'); e_renderTable(); e_renderChart();
+      if (notification.includes('فوري')) e_sendWhatsApp(entry);
+      toast('تم إضافة المصروف','primary');
+    });
+
+    function e_renderTable(){
+      const tb = document.querySelector('#e-table tbody'); tb.innerHTML=''; let total=0;
+      e_expenses.forEach(exp=>{
+        total += exp.amount;
+        tb.innerHTML += `<tr>
+          <td data-label="الاسم">${exp.name}</td>
+          <td data-label="الفئة">${exp.category}</td>
+          <td data-label="المبلغ اليومي">${Math.round(exp.amount)}</td>
+          <td data-label="العملة">SAR</td>
+          <td data-label="الدورية">${exp.frequency}</td>
+          <td data-label="التاريخ">${exp.date||''}</td>
+          <td data-label="الملاحظات">${exp.notes||''}</td>
+          <td data-label="إجراءات" class="actions">
+            <button class="btn btn-sm btn-outline-secondary" onclick="openEditExpense(${exp.id})"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="e_delete(${exp.id})">🗑️</button>
+          </td>
+        </tr>`;
+      });
+      $('#e-total-expenses').innerText = `${Math.round(total)} ريال / يوم`;
+      e_calculateNetProfit(total);
+    }
+    window.openEditExpense = function(id){
+      const exp = e_expenses.find(x=> x.id===id);
+      if (!exp) return;
+      $('#editExpenseId').value = id;
+      $('#editExpenseName').value = exp.name;
+      $('#editExpenseCategory').value = exp.category;
+      $('#editExpenseAmount').value = Math.round(exp.amount);
+      $('#editExpenseFrequency').value = exp.frequency;
+      $('#editExpenseDate').value = exp.date || '';
+      $('#editExpenseNotes').value = exp.notes || '';
+      new bootstrap.Modal('#modalEditExpense').show();
+    }
+    document.getElementById('formEditExpense').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const id = +$('#editExpenseId').value;
+      const idx = e_expenses.findIndex(x=> x.id===id);
+      if (idx<0) return;
+      e_expenses[idx] = {
+        ...e_expenses[idx],
+        name: $('#editExpenseName').value,
+        category: $('#editExpenseCategory').value,
+        amount: parseFloat($('#editExpenseAmount').value)||0,
+        frequency: $('#editExpenseFrequency').value,
+        date: $('#editExpenseDate').value,
+        notes: $('#editExpenseNotes').value
+      };
+      save(LS_KEYS.expenses, e_expenses);
+      e_renderTable(); e_renderChart();
+      bootstrap.Modal.getInstance(document.getElementById('modalEditExpense')).hide();
+      toast('تم تعديل المصروف','primary');
+    });
+
+    function e_delete(id){ e_expenses = e_expenses.filter(e=> e.id!==id); save(LS_KEYS.expenses, e_expenses); e_renderTable(); e_renderChart(); toast('تم الحذف','primary'); }
+    function e_renderChart(){
+      const grouped = e_expenses.reduce((acc,c)=>{ acc[c.category]=(acc[c.category]||0)+c.amount; return acc; }, {});
+      const data = { labels:Object.keys(grouped), datasets:[{ label:'المصاريف اليومية', data:Object.values(grouped).map(v=>Math.round(v)), backgroundColor:['#22c55e66','#14b8a666','#6477ff66','#f59e0b66','#ef444466'] }] };
+      if (window.eChart) window.eChart.destroy();
+      window.eChart = new Chart(document.getElementById('e-chart'), { type:'bar', data, options:{ maintainAspectRatio:false, plugins:{ legend:{ display:false } }, responsive:true, scales:{ y:{ beginAtZero:true } } }});
+    }
+    function e_calculateNetProfit(totalExpenses){
+      const sales = parseFloat($('#e-daily-sales').value)||0;
+      const profit = parseFloat($('#e-daily-profit').value)||0;
+      const net = profit - totalExpenses;
+      $('#e-net-profit').innerText = `${Math.round(net)} ريال / يوم`;
+    }
+    $('#e-daily-sales').addEventListener('input', ()=> e_calculateNetProfit(e_expenses.reduce((s,e)=> s+e.amount,0)));
+    $('#e-daily-profit').addEventListener('input', ()=> e_calculateNetProfit(e_expenses.reduce((s,e)=> s+e.amount,0)));
+    function e_sendWhatsApp(entry){ const url=`https://api.whatsapp.com/send?phone=+966554520700&text=${encodeURIComponent('Reminder: Your '+entry.name+' payment is due today.')}`; window.open(url,'_blank'); }
+    function e_exportReport(){ const area = $('#e-main'); html2canvas(area, { scale:2, useCORS:true, backgroundColor:'#fff' }).then(c=>{ const a=document.createElement('a'); a.download='تقرير_المصاريف.jpg'; a.href=c.toDataURL('image/jpeg',1); a.click(); }); }
+    function e_checkDueToday(){ const today=todayISO(); const due = e_expenses.filter(x=> x.notification?.includes('مجدول') && x.scheduleDate===today); if(due.length) toast(`لديك ${due.length} تذكير(ات) مستحقة اليوم`, 'warning'); }
+
+    // Backup/Settings
+    function app_exportAll(){
+      const data = { suppliers: load(LS_KEYS.suppliers, []), orders: load(LS_KEYS.orders, []), expenses: load(LS_KEYS.expenses, []), daily: load(LS_KEYS.daily, []), period: load(LS_KEYS.period, []) };
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'}); const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download=`ocean-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
+    }
+    function app_importAll(ev){
+      const file = ev.target.files[0]; if(!file) return;
+      const reader = new FileReader();
+      reader.onload = e=>{ try {
+        const data = JSON.parse(e.target.result);
+        if (data.suppliers) save(LS_KEYS.suppliers, data.suppliers);
+        if (data.orders) save(LS_KEYS.orders, data.orders);
+        if (data.expenses) save(LS_KEYS.expenses, data.expenses);
+        if (data.daily) save(LS_KEYS.daily, data.daily);
+        if (data.period) save(LS_KEYS.period, data.period);
+        p_suppliers = load(LS_KEYS.suppliers, []); p_orders = load(LS_KEYS.orders, []);
+        r_periodData = load(LS_KEYS.period, []); e_expenses = load(LS_KEYS.expenses, []);
+        p_renderSuppliersCards(); p_renderSuppliersList(); p_renderDynamicSuppliers(); p_renderSupplierSelect(); p_renderOrdersTable();
+        r_renderPeriodList(); r_loadDayIfAny(); e_renderTable(); e_renderChart(); ov_refresh();
+        toast('تم استيراد النسخة الاحتياطية','primary');
+      } catch { alert('ملف غير صالح'); } };
+      reader.readAsText(file); ev.target.value='';
+    }
+    function app_resetAll(){
+      if (!confirm('سيتم مسح كل البيانات المحلية!')) return;
+      Object.values(LS_KEYS).forEach(k=> localStorage.removeItem(k));
+      p_suppliers = p_defaultSuppliers.slice(); p_orders = []; e_expenses = []; r_periodData = [];
+      save(LS_KEYS.suppliers, p_suppliers); save(LS_KEYS.orders, p_orders); save(LS_KEYS.expenses, e_expenses); save(LS_KEYS.daily, []); save(LS_KEYS.period, []);
+      p_renderSuppliersCards(); p_renderSuppliersList(); p_renderDynamicSuppliers(); p_renderSupplierSelect(); p_renderOrdersTable(); r_renderPeriodList(); e_renderTable(); e_renderChart(); ov_refresh();
+      toast('تمت إعادة التهيئة','primary');
+    }
+
+    // Overview aggregation + chart (responsive)
+    let ovChart;
+    function ov_refresh(){
+      const orders = load(LS_KEYS.orders, []);
+      const month = new Date().toISOString().slice(0,7);
+      const monthly = orders.filter(o=> o.date?.startsWith(month));
+      const monthAmount = monthly.reduce((s,o)=> s+(Number(o.amount)||0), 0);
+      const monthQty = monthly.reduce((s,o)=> s+(Number(o.quantity)||0), 0);
+      $('#ov-month-purchases').innerText = '$' + fmt(monthAmount);
+      $('#ov-month-purchases-qty').innerText = fmt(monthQty) + ' كوين';
+
+      const dailyReports = load(LS_KEYS.daily, []);
+      const totalProfit = dailyReports.reduce((s,r)=> s+(Number(r.totalProfit)||0), 0);
+      const topCount = {}; dailyReports.forEach(r=>{ if(r.topProgram) topCount[r.topProgram]=(topCount[r.topProgram]||0)+1; });
+      const top = Object.keys(topCount).sort((a,b)=> topCount[b]-topCount[a])[0] || '';
+      $('#ov-period-profit').innerText = fmt(totalProfit) + ' ريال';
+      $('#ov-top-program').innerHTML = top ? `<span class="badge bg-success">الأكثر ربحًا: ${top}</span>` : '';
+
+      const latest = dailyReports.sort((a,b)=> (a.date>b.date?-1:1))[0];
+      $('#ov-today-net').innerText = latest ? fmt(latest.totalProfit) + ' ريال' : '0 ريال';
+      if (dailyReports.length>=2){
+        const [d1,d2] = dailyReports.sort((a,b)=> (a.date>b.date?-1:1));
+        const diff = d1.totalProfit - d2.totalProfit;
+        const pct = d2.totalProfit ? (diff/d2.totalProfit*100) : 100;
+        $('#ov-today-comp').innerHTML = `<span class="badge ${diff>=0?'bg-success':'bg-danger'}">${diff>=0?'⬆️':'⬇️'} ${fmt(diff)} (${pct.toFixed(1)}%) مقارنة باليوم السابق</span>`;
+      } else {
+        $('#ov-today-comp').innerHTML = `<span class="text-muted">لا توجد بيانات سابقة للمقارنة.</span>`;
+      }
+
+      // 7 days chart
+      const ctx = document.getElementById('ov-7days-chart').getContext('2d');
+      const byDate = {}; dailyReports.forEach(r=> byDate[r.date]=r.totalProfit);
+      const last7 = [...Object.keys(byDate)].sort().slice(-7); const data = last7.map(d=> byDate[d]);
+      if (ovChart) ovChart.destroy();
+      ovChart = new Chart(ctx, {
+        type:'line',
+        data:{ labels:last7, datasets:[{ data, label:'صافي الربح', borderColor:'#14b8a6', backgroundColor:'#14b8a622', tension:.35, fill:true }]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+      });
+
+      // KPI sparks
+      if (s1) { s1.destroy(); s2.destroy(); s3.destroy(); }
+      s1 = sparkCfg(document.getElementById('spark1').getContext('2d'), _sparkColors.green);
+      s2 = sparkCfg(document.getElementById('spark2').getContext('2d'), _sparkColors.indigo);
+      s3 = sparkCfg(document.getElementById('spark3').getContext('2d'), _sparkColors.emerald);
+    }
+
+    // Initial boot
+    function init(){
+      $('#r-date').value = todayISO();
+      p_renderSuppliersCards(); p_renderSupplierSelect(); p_renderSuppliersList(); p_renderDynamicSuppliers(); p_renderOrdersTable();
+      r_renderPeriodList(); r_loadDayIfAny(); e_renderTable(); e_renderChart(); e_checkDueToday();
+      ov_refresh(); e_loadRates();
+    }
+    window.onload = init;
+  </script>
 </body>
 </html>
