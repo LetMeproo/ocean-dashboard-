@@ -1282,26 +1282,48 @@ document.getElementById('p-addSupplierForm-off').addEventListener('submit', func
       switch(frequency){ case 'شهري': return amount/30; case 'سنوي': return amount/365; case 'مرة واحدة': return amount; case 'يومي': default: return amount; }
     }
     $('#e-notification').addEventListener('change', (e)=> $('#e-schedule-date').classList.toggle('d-none', !e.target.value.includes('مجدول')));
-    document.getElementById('e-form').addEventListener('submit', async function(ev){
-      ev.preventDefault();
-      let name = $('#e-name').value;
-      let category = $('#e-category').value;
-      let amount = parseFloat($('#e-amount').value);
-      let currency = $('#e-currency').value;
-      let frequency = $('#e-frequency').value;
-      let notification = $('#e-notification').value;
-      let date = $('#e-date').value;
-      let scheduleDate = $('#e-schedule-date').value;
-      let notes = $('#e-notes').value;
+document.getElementById('e-form').addEventListener('submit', async function(ev){
+  ev.preventDefault();
+  let name = $('#e-name').value;
+  let category = $('#e-category').value;
+  let amount = parseFloat($('#e-amount').value);
+  let currency = $('#e-currency').value;
+  let frequency = $('#e-frequency').value;
+  let notification = $('#e-notification').value;
+  let date = $('#e-date').value;
+  let scheduleDate = $('#e-schedule-date').value;
+  let notes = $('#e-notes').value;
 
-      if (currency!=='SAR' && e_rates[currency]) { amount = amount / e_rates[currency]; currency = 'SAR'; }
-      const dailyAmount = e_convertToDaily(amount, frequency);
-      const entry = { id: Date.now(), name, category, amount: dailyAmount, currency, frequency, date, notes, notification, scheduleDate };
-      e_expenses.push(entry); save(LS_KEYS.expenses, e_expenses);
-      ev.target.reset(); $('#e-schedule-date').classList.add('d-none'); e_renderTable(); e_renderChart();
-      if (notification.includes('فوري')) e_sendWhatsApp(entry);
-      toast('تم إضافة المصروف','primary');
-    });
+  // تأكد من تحميل أسعار الصرف
+  if (currency !== 'SAR' && (!e_rates[currency] || Object.keys(e_rates).length === 0)) {
+    await e_loadRates();
+    if (!e_rates[currency]) {
+      toast('تعذر تحميل سعر الصرف للعملة المختارة، حاول لاحقاً', 'danger');
+      return;
+    }
+  }
+
+  // تحويل العملة إلى ريال سعودي
+  if (currency !== 'SAR' && e_rates[currency]) {
+    amount = amount / e_rates[currency];
+    currency = 'SAR';
+  }
+
+  // تحويل المبلغ إلى مبلغ يومي حسب الدورية
+  let dailyAmount = amount;
+  switch(frequency){
+    case 'شهري': dailyAmount = amount / 30; break;
+    case 'سنوي': dailyAmount = amount / 365; break;
+    case 'مرة واحدة': dailyAmount = amount; break;
+    case 'يومي': default: dailyAmount = amount; break;
+  }
+
+  const entry = { id: Date.now(), name, category, amount: dailyAmount, currency, frequency, date, notes, notification, scheduleDate };
+  e_expenses.push(entry); save(LS_KEYS.expenses, e_expenses);
+  ev.target.reset(); $('#e-schedule-date').classList.add('d-none'); e_renderTable(); e_renderChart();
+  if (notification.includes('فوري')) e_sendWhatsApp(entry);
+  toast('تم إضافة المصروف','primary');
+});
 
     function e_renderTable(){
       const tb = document.querySelector('#e-table tbody'); tb.innerHTML=''; let total=0;
@@ -1463,6 +1485,9 @@ document.getElementById('p-addSupplierForm-off').addEventListener('submit', func
       ov_refresh(); e_loadRates();
     }
     window.onload = init;
+
+
+    
   </script>
 </body>
 </html>
