@@ -987,6 +987,33 @@
       });
     }
 
+// إضافة مورد من offcanvas
+document.getElementById('p-addSupplierForm-off').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const name = document.getElementById('p-supplierNameOff').value.trim();
+  const program = document.getElementById('p-programNameOff').value.trim();
+  const rate = parseInt(document.getElementById('p-coinsPerDollarOff').value);
+  const contact = document.getElementById('p-contactLinkOff').value.trim();
+
+  if (!name || !program || !rate) {
+    toast('يرجى تعبئة الحقول المطلوبة', 'danger');
+    return;
+  }
+
+  p_suppliers.push({ name, program, rate, contact });
+  p_saveSuppliers();
+  p_renderSuppliersCards();
+  p_renderSuppliersList();
+  p_renderDynamicSuppliers();
+  p_renderSupplierSelect();
+
+  this.reset();
+  bootstrap.Offcanvas.getInstance(document.getElementById('p-offcanvasSupplier')).hide();
+  toast('تمت إضافة المورد', 'primary');
+});
+
+
     // New Order form
     document.getElementById('p-amount').addEventListener('input', function(){
       const idx = $('#p-supplierSelect').value;
