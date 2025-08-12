@@ -1487,6 +1487,43 @@ document.getElementById('e-form').addEventListener('submit', async function(ev){
     window.onload = init;
 
 
+
+function p_downloadExcel() {
+  // بيانات الطلبات
+  const orders = JSON.parse(localStorage.getItem('ocean_orders') || '[]');
+  if (!orders.length) return toast('لا يوجد بيانات للتحميل', 'danger');
+
+  // تجهيز البيانات للجدول
+  const sheetData = [
+    ['التاريخ', 'البرنامج', 'المورد', 'المبلغ ($)', 'الكمية', 'اسم الفاتورة']
+  ];
+  orders.forEach(o => {
+    sheetData.push([
+      o.date || '',
+      o.program || '',
+      o.supplier || '',
+      o.amount || '',
+      o.quantity || '',
+      o.invoice?.name || ''
+    ]);
+  });
+
+  // إنشاء ملف Excel
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(sheetData);
+  XLSX.utils.book_append_sheet(wb, ws, 'سجل الطلبات');
+  XLSX.writeFile(wb, 'سجل_الطلبات.xlsx');
+  toast('تم تحميل ملف Excel', 'primary');
+}
+
+
+
+
+
+
+
+
+    
     
   </script>
 </body>
